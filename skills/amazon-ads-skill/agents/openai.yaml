@@ -1,0 +1,5 @@
+interface:
+  display_name: "Amazon Ads API"
+  short_description: "通过官方 API 查询和管理 Amazon 广告活动、报告及经营数据"
+  default_prompt: "使用 $amazon-ads-skill 查询 Amazon 广告活动和表现数据。"
+
