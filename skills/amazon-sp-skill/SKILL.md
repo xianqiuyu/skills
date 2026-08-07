@@ -3,17 +3,17 @@ name: amazon-sp-skill
 description: Use when 用户通过 Amazon 官方 SP-API 查询或管理店铺经营数据，包括订单、库存、Listing、Reports、Finances、FBA、Feeds，以及处理 SP-API 未授权或鉴权错误，且不需要驱动浏览器。
 ---
 
-# Amazon SP-API 平台数据（zn-eco）
+# Amazon SP-API 平台数据（zn-open-eco）
 
-用 **zn-eco** 渐进式发现 `amazon-sp-api`，再调用代理。不背接口、不驱动浏览器。
+用 **zn-open-eco** 渐进式发现 `amazon-sp-api`，再调用代理。不背接口、不驱动浏览器。
 
 先读 CLI 通用约定；若已在当前上下文中完整读取，可跳过：
 
 ```bash
-zn-eco agent guide
+zn-open-eco agent guide
 ```
 
-Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-eco 指南里寻找。
+Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-open-eco 指南里寻找。
 
 ## 铁律
 
@@ -40,7 +40,7 @@ Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-eco 指
 无法判断时默认 `na`；多店请求分别使用各店所属大区。
 
 ```bash
-zn-eco http GET /proxy/na/orders/v0/orders \
+zn-open-eco http GET /proxy/na/orders/v0/orders \
   --module amazon-sp-api \
   --headers '{"X-Account-Id":"<browser_id>"}' --query '{...}'
 ```
@@ -51,10 +51,10 @@ zn-eco http GET /proxy/na/orders/v0/orders \
 2. **渐进发现**：path 必须来自上一级发现结果，不得编造。
 
 ```bash
-zn-eco skills
-zn-eco skills get --path "amazon-sp-api"
-zn-eco skills get --path "amazon-sp-api <业务模块>"
-zn-eco skills get --path "amazon-sp-api <业务模块> operations <操作名>"
+zn-open-eco skills
+zn-open-eco skills get --path "amazon-sp-api"
+zn-open-eco skills get --path "amazon-sp-api <业务模块>"
+zn-open-eco skills get --path "amazon-sp-api <业务模块> operations <操作名>"
 ```
 
 3. **调用接口**：按大区规则拼接代理 path；query、body 和 header 字段名以发现到的 Swagger 文档为准。
@@ -108,7 +108,7 @@ zn-eco skills get --path "amazon-sp-api <业务模块> operations <操作名>"
 
 ## 能力边界
 
-- 只使用 `zn-eco skills` 能发现的 `amazon-sp-api` 能力。
+- 只使用 `zn-open-eco skills` 能发现的 `amazon-sp-api` 能力。
 - 发现一轮对口能力即可；业务相关不等于接口匹配。
 - 同一接口最多重试三次。
 - 任何写操作必须在本次对话中取得用户确认。
@@ -123,4 +123,3 @@ zn-eco skills get --path "amazon-sp-api <业务模块> operations <操作名>"
 | 使用“差不多”的接口凑数据 | 明确说明没有对口接口 |
 | 未确认就调用写操作 | 停止调用，先说明影响并请求确认 |
 | 店铺国家与代理大区不匹配 | 按国家重新选择 `eu`、`fe` 或 `na` |
-
