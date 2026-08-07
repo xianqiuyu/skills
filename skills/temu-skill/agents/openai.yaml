@@ -1,0 +1,4 @@
+interface:
+  display_name: "Temu 店铺运营"
+  short_description: "通过 zn-eco 安全查询和操作 Temu 店铺运营数据"
+  default_prompt: "Use $temu-skill to query my Temu store data safely through zn-eco."
