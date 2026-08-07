@@ -1,0 +1,5 @@
+interface:
+  display_name: "Amazon SP-API"
+  short_description: "通过官方 API 查询和管理 Amazon 店铺订单、库存及经营数据"
+  default_prompt: "使用 $amazon-sp-skill 查询 Amazon 店铺的订单和库存数据。"
+
