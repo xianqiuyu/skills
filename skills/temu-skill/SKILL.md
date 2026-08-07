@@ -1,23 +1,23 @@
 ---
 name: temu-skill
-description: Use the zn-eco CLI to query and operate Temu stores through official APIs, including orders, fulfillment, logistics, inventory, products, stock, shipping, and sales. Use when Codex must distinguish full-managed, semi-managed, and local stores; select CN, Partner, or regional gateways; diagnose access-token or Not Found errors; or retrieve Temu files without driving a browser.
+description: Use the zn-open-eco CLI to query and operate Temu stores through official APIs, including orders, fulfillment, logistics, inventory, products, stock, shipping, and sales. Use when Codex must distinguish full-managed, semi-managed, and local stores; select CN, Partner, or regional gateways; diagnose access-token or Not Found errors; or retrieve Temu files without driving a browser.
 ---
 
 # Temu 店铺运营
 
-使用 `zn-eco` 发现 `temu-api` 的可用接口并通过代理调用。不要驱动浏览器，不要猜测接口 `type`、请求参数、网关或店铺类型。
+使用 `zn-open-eco` 发现 `temu-api` 的可用接口并通过代理调用。不要驱动浏览器，不要猜测接口 `type`、请求参数、网关或店铺类型。
 
 ## 开始前
 
-1. 确认 `zn-eco` 可用；若命令不存在，说明依赖缺失并停止，不要改用直连请求。
-2. 若当前上下文尚未包含 CLI 通用约定，运行 `zn-eco agent guide`。
+1. 确认 `zn-open-eco` 可用；若命令不存在，说明依赖缺失并停止，不要改用直连请求。
+2. 若当前上下文尚未包含 CLI 通用约定，运行 `zn-open-eco agent guide`。
 3. 从用户或可信上下文取得目标店铺的账号 ID，并作为 `X-Account-Id` 传递。不要向用户展示该 ID。
 4. 明确店铺主体（中国跨境或本土）及目标站点。无法排除中国跨境全托管/半托管歧义时，先执行店铺类型校验。
 
 ## 不可违反的规则
 
-- 仅调用 `zn-eco skills` 已发现并读取过文档的接口；没有匹配接口时如实说明，不要拼凑相似接口。
-- `zn-eco http` 的 Temu 代理路径始终为 `/proxy/{site}/{shop_type}`，不得使用 Swagger 中的 `/openapi/router` 或官方域名作为代理路径。
+- 仅调用 `zn-open-eco skills` 已发现并读取过文档的接口；没有匹配接口时如实说明，不要拼凑相似接口。
+- `zn-open-eco http` 的 Temu 代理路径始终为 `/proxy/{site}/{shop_type}`，不得使用 Swagger 中的 `/openapi/router` 或官方域名作为代理路径。
 - `--module` 固定为 `temu-api`；请求体中不要传 `access_token`。
 - 中国跨境店铺必须先用 `bg.mall.info.get` 确认全托管或半托管，除非同一账号在当前会话中已有仍然有效的校验结果。
 - 对新增、修改、发货、取消等写操作，在调用前向用户确认具体操作和影响范围。查询类操作可直接执行。
@@ -28,8 +28,8 @@ description: Use the zn-eco CLI to query and operate Temu stores through officia
 在拼接业务路径前运行：
 
 ```bash
-zn-eco skills get --path "temu-api temu-cn-api authorization-api operations bg.mall.info.get.json"
-zn-eco http POST /proxy/cn/cross-border-semi-managed \
+zn-open-eco skills get --path "temu-api temu-cn-api authorization-api operations bg.mall.info.get.json"
+zn-open-eco http POST /proxy/cn/cross-border-semi-managed \
   --module temu-api \
   --headers '{"X-Account-Id":"<account_id>"}' \
   --body '{"type":"bg.mall.info.get"}'
@@ -81,20 +81,20 @@ POST /proxy/{site}/{shop_type}/file_download
 3. 逐层发现能力。路径叶子必须包含 `.json` 或 `.md`；省略后缀可能返回“文件未找到”。
 
    ```bash
-   zn-eco skills get --path "temu-api"
-   zn-eco skills get --path "temu-api temu-cn-api product-api operations bg.glo.goods.detail.get.json"
+   zn-open-eco skills get --path "temu-api"
+   zn-open-eco skills get --path "temu-api temu-cn-api product-api operations bg.glo.goods.detail.get.json"
    ```
 
 4. 读取 operation 文档，取得准确的 `type`、请求体字段和网关，再用已校验的 `shop_type` 组装代理路径。
 5. 调用接口。例如：
 
    ```bash
-   zn-eco http POST /proxy/cn/cross-border-semi-managed \
+   zn-open-eco http POST /proxy/cn/cross-border-semi-managed \
      --module temu-api \
      --headers '{"X-Account-Id":"<account_id>"}' \
      --body '{"type":"bg.goods.salesv2.get","<field>":"<value>"}'
 
-   zn-eco http POST /proxy/partner/cross-border-semi-managed \
+   zn-open-eco http POST /proxy/partner/cross-border-semi-managed \
      --module temu-api \
      --headers '{"X-Account-Id":"<account_id>"}' \
      --body '{"type":"bg.glo.goods.detail.get","<field>":"<value>"}'
@@ -109,7 +109,7 @@ POST /proxy/{site}/{shop_type}/file_download
 当 operation 返回文件 URL 时，优先按文档调用：
 
 ```bash
-zn-eco http POST /proxy/{site}/{shop_type}/file_download \
+zn-open-eco http POST /proxy/{site}/{shop_type}/file_download \
   --module temu-api \
   --headers '{"X-Account-Id":"<account_id>"}' \
   --body '{"url":"<documented_url>"}'
