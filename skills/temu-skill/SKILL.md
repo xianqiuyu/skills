@@ -10,9 +10,32 @@ description: Use the zn-open-eco CLI to query and operate Temu stores through of
 ## 开始前
 
 1. 确认 `zn-open-eco` 可用；若命令不存在，说明依赖缺失并停止，不要改用直连请求。
-2. 若当前上下文尚未包含 CLI 通用约定，运行 `zn-open-eco agent guide`。
-3. 从用户或可信上下文取得目标店铺的账号 ID，并作为 `X-Account-Id` 传递。不要向用户展示该 ID。
-4. 明确店铺主体（中国跨境或本土）及目标站点。无法排除中国跨境全托管/半托管歧义时，先执行店铺类型校验。
+2. 执行下方“调用前账户解析闸门”。鉴权确认有效后，若当前上下文尚未包含 CLI 通用约定，运行 `zn-open-eco agent guide`。
+3. 明确店铺主体（中国跨境或本土）及目标站点。无法排除中国跨境全托管/半托管歧义时，先执行店铺类型校验。
+
+## 调用前账户解析闸门
+
+任何 Temu 能力发现、店铺类型校验或代理请求之前，必须按以下顺序完成；不得因为用户已经给出店铺名称或 ID 而跳过。
+
+1. 首条 `zn-open-eco` 命令运行 `zn-open-eco auth status`。
+   - 未配置或无效：立即停止，只提醒用户先配置 auth；此时不要询问或展示店铺，也不要运行 `agent guide`。
+   - 已配置：继续店铺解析。
+2. 解析店铺并私下保留选中店铺的完整对象：
+   - 用户给出店铺名称或关键词：运行 `zn-open-eco account stores --store-name "<名称或关键词>"`。先用返回对象中的店铺名称与用户输入做精确匹配：恰有一个精确同名时，即使同时返回其他模糊候选也直接选中；没有精确同名且仅有一个可用候选时直接选中；只有没有精确同名且存在多个可用候选时，才按下方规则让用户选择。
+   - 用户给出店铺 ID：运行 `zn-open-eco account stores`，在完整结果中私下按 `browser_id` 精确匹配。不要把 ID 回显给用户。
+   - 用户未给店铺：运行 `zn-open-eco account stores`，缓存本次完整结果并进入选择流程。
+   - 任一店铺查询返回零条匹配：立即停止，告知用户没有匹配店铺并请其提供其他店铺名称或关键词；不得猜测、近似匹配、自动选择其他店铺或发起代理请求。
+3. 店铺选择界面严格保持接口返回的稳定顺序，每页最多 20 条，只显示店铺名称，一行一个；不排序、不改变顺序，不显示序号、ID、国家、平台、授权状态或其他字段。提示用户可回复店铺名称、关键词、`上一页` 或 `下一页`。
+   - `上一页`、`下一页`只切换缓存结果，不再次请求接口。
+   - 第 1 页没有上一页，最后一页没有下一页；到达边界时保持当前页并告知用户，禁止首尾循环或越界。
+   - 用户回复关键词时，运行 `zn-open-eco account stores --store-name "<关键词>"`，用新结果替换缓存并回到第 1 页。
+   - 用户按名称选择时，只按完整店铺名称精确选中当前候选；选中后仍只向用户显示店铺名称。完整店铺对象仅保留在当前代理上下文中，尤其不得暴露 `browser_id`。
+4. 运行一次且只运行 `zn-open-eco account platform-auths --platform-type temu-api`，命令和 `platform_type` 值必须严格保持为这里给出的 `temu-api`；使用完整结果按私下保留的 `browser_id` 对每个选中店铺逐店精确匹配授权记录。
+   - 未找到某店铺的授权记录：只停止该店铺；绝不为该店铺发起店铺类型校验、业务或其他代理请求，并按“未授权”一节的原有提示处理。
+   - 已授权店铺：每店分别使用自己的 `browser_id` 作为 `X-Account-Id`，继续各自的 Temu 店铺类型校验与业务流程并正常汇总。
+   - 多店请求必须检查所有选中店铺。部分未授权时继续处理已授权店铺；全部未授权时不发起任何代理请求。
+
+账户查询命令的原始响应只用于内部解析；不得向用户输出完整对象、JSON、ID 或平台授权记录。
 
 ## 不可违反的规则
 
@@ -76,7 +99,7 @@ POST /proxy/{site}/{shop_type}/file_download
 
 ## 执行工作流
 
-1. 确认店铺账号 ID、店铺主体和目标站点。
+1. 完成“调用前账户解析闸门”，再确认店铺主体和目标站点；每店使用私下保留的 `browser_id` 作为 `X-Account-Id`。
 2. 对中国跨境店先执行 `bg.mall.info.get`；本土店跳过。如果接口需要 `mallId` 或额外权限，再读取对应区域的 `authorization-api` 文档。
 3. 逐层发现能力。路径叶子必须包含 `.json` 或 `.md`；省略后缀可能返回“文件未找到”。
 
@@ -123,6 +146,7 @@ zn-open-eco http POST /proxy/{site}/{shop_type}/file_download \
 
 仅将以下信号视为未授权：
 
+- 调用前的 `account platform-auths --platform-type temu-api` 结果中没有当前店铺的授权记录
 - 响应包含 `access_token invalid`
 - 响应包含 `access_token don't have this api access`
 - HTTP 403 且上下文明确表示无权限
@@ -136,6 +160,8 @@ zn-open-eco http POST /proxy/{site}/{shop_type}/file_download \
 ```
 
 使用普通链接，不要嵌入图片，也不要修改 Temu 授权指引 URL。
+
+多店请求中，已授权店铺继续正常汇总；未授权店铺逐店使用上面的原有业务提示，不得把未授权店铺的 `browser_id`、授权记录或原始响应发给用户。
 
 ### 路径和其他错误
 
@@ -156,3 +182,4 @@ zn-open-eco http POST /proxy/{site}/{shop_type}/file_download \
 | 发现接口时省略 `.json` 或 `.md` | 使用目录返回的完整文件名 |
 | 把临时 URL、内部 ID 或原始 JSON 发给用户 | 返回业务结果；文件保存到用户可访问路径 |
 | 仅凭 Swagger path 猜代理地址 | Swagger 只用于识别接口，代理地址遵循本 skill 的路径规则 |
+| Temu 平台授权查询 | 命令和值严格固定为 `account platform-auths --platform-type temu-api` |
