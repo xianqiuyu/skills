@@ -7,13 +7,37 @@ description: Use when 用户通过 Amazon 官方 Ads API 查询或管理广告�
 
 用 **zn-open-eco** 渐进式发现 `amazon-ads-api`，再调用代理。不背接口、不驱动浏览器。
 
-先读 CLI 通用约定；若已在当前上下文中完整读取，可跳过：
+先执行下方“调用前账户解析闸门”。鉴权确认有效后，再读 CLI 通用约定；若已在当前上下文中完整读取，可跳过：
 
 ```bash
 zn-open-eco agent guide
 ```
 
 Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-open-eco 指南里寻找。
+
+## 调用前账户解析闸门
+
+任何 Ads 能力发现、profile 查询或代理请求之前，必须按以下顺序完成；不得因为用户已经给出店铺名称或 ID 而跳过。
+
+1. 首条 CLI 命令运行 `zn-open-eco auth status`。
+   - 未配置或无效：立即停止，只提醒用户先配置 auth；此时不要询问或展示店铺。
+   - 已配置：继续店铺解析。
+2. 解析店铺并私下保留选中店铺的完整对象：
+   - 用户给出店铺名称或关键词：运行 `zn-open-eco account stores --store-name "<名称或关键词>"`。先用返回对象中的店铺名称与用户输入做精确匹配：恰有一个精确同名时，即使同时返回其他模糊候选也直接选中；没有精确同名且仅有一个可用候选时直接选中；只有没有精确同名且存在多个可用候选时，才按下方规则让用户选择。
+   - 用户给出店铺 ID：运行 `zn-open-eco account stores`，在完整结果中私下按 `browser_id` 精确匹配。不要把 ID 回显给用户。
+   - 用户未给店铺：运行 `zn-open-eco account stores`，缓存本次完整结果并进入选择流程。
+   - 任一店铺查询返回零条匹配：立即停止，告知用户没有匹配店铺并请其提供其他店铺名称或关键词；不得猜测、近似匹配、自动选择其他店铺或发起代理请求。
+3. 店铺选择界面严格保持接口返回的稳定顺序，每页最多 20 条，只显示店铺名称，一行一个；不排序、不改变顺序，不显示 ID、国家、平台或其他字段。提示用户可回复店铺名称、关键词、`上一页` 或 `下一页`。
+   - `上一页`、`下一页`只切换缓存结果，不再次请求接口。
+   - 第 1 页没有上一页，最后一页没有下一页；到达边界时保持当前页并告知用户，禁止首尾循环或越界。
+   - 用户回复关键词时，运行 `zn-open-eco account stores --store-name "<关键词>"`，用新结果替换缓存并回到第 1 页。
+   - 选中后仍只向用户显示店铺名称；完整店铺对象仅保留在当前代理上下文中，尤其不得暴露 `browser_id`。
+4. 运行一次 `zn-open-eco account platform-auths --platform-type amazon-ads-api`，使用完整结果按私下保留的 `browser_id` 对每个选中店铺逐店精确匹配授权记录。
+   - 未找到某店铺的授权记录：只停止该店铺；绝不为该店铺发起 profile、业务或其他代理请求，并把店铺名加入“未授权”一节的合并提示。
+   - 已授权店铺：每店分别使用自己的 `browser_id` 作为 `X-Account-Id`，继续各自的 Ads profile 与业务流程并正常汇总。
+   - 多店请求必须检查所有选中店铺。部分未授权时继续处理已授权店铺；全部未授权时不发起任何代理请求。
+
+账户查询命令的原始响应只用于内部解析；不得向用户输出完整对象、JSON、ID 或平台授权记录。
 
 ## 铁律
 
@@ -47,7 +71,7 @@ zn-open-eco http GET /proxy/na/v2/profiles \
 
 ## 执行流程
 
-1. **确定店铺**：使用 `browser_id` 作为 `X-Account-Id`；只使用 `amazon-ads-api`。
+1. **确定店铺**：必须先完成“调用前账户解析闸门”，再使用私下保留的 `browser_id` 作为 `X-Account-Id`；只使用 `amazon-ads-api`。
 2. **渐进发现**：path 必须来自上一级发现结果，不得编造。
 
 ```bash
@@ -79,8 +103,9 @@ zn-open-eco skills get --path "amazon-ads-api <业务模块> operations <操作�
 
 仅以下信号表示店铺未完成平台授权：
 
-1. 内部响应的 `error_code` 为 `32002`，或文案包含“授权记录不存在”。
-2. 响应仅为裸字符串 `"seller_account_id=<数字>"`。
+1. 调用前的 `account platform-auths --platform-type amazon-ads-api` 结果中没有当前店铺的授权记录。
+2. 内部响应的 `error_code` 为 `32002`，或文案包含“授权记录不存在”。
+3. 响应仅为裸字符串 `"seller_account_id=<数字>"`。
 
 命中后停止换参重试；不要调用 `/auth/authorize-url` 或其他接口取得授权链接；不要自造 Seller Central、二维码或视频链接。多店请求合并未授权店名。面向用户始终原样输出：
 
@@ -89,6 +114,8 @@ zn-open-eco skills get --path "amazon-ads-api <业务模块> operations <操作�
 
 附图：[授权操作指引](https://agent-swarm-resources-prod.oss-cn-shenzhen.aliyuncs.com/ai-client-resouces-envkit/20260805/8dae26d3.jpg)
 ```
+
+将方括号中的占位符替换为实际店铺名称；方括号本身不输出。多个未授权店铺按模板用 `、` 合并，只输出一份提示。
 
 - 附图必须使用 `[文字](url)`，不要使用 `![]()`；Amazon 链接不得修改。
 - 设置入口参考：`AI` → `设置` → `平台授权管理` → `新增授权`。
