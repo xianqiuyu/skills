@@ -15,6 +15,22 @@ zn-open-eco agent guide
 
 Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-open-eco 指南里寻找。
 
+## 跨平台 CLI JSON 参数（必读）
+
+执行 `zn-open-eco http` 前，先识别实际 Shell；不要把一种 Shell 的引号写法直接复制到另一种 Shell。`--headers`、`--query` 与 `--body` 都必须作为**一个完整 JSON 参数**传入。
+
+| 环境 | JSON 参数写法示例 |
+| --- | --- |
+| macOS/Linux bash/zsh | `--headers '{"X-Account-Id":"<browser_id>"}'` |
+| Windows PowerShell | `--headers '{\"X-Account-Id\":\"<browser_id>\"}'` |
+| Windows cmd.exe | `--headers "{\"X-Account-Id\":\"<browser_id>\"}"` |
+
+- `--query`、`--body`按同一规则转义；不要在 Windows `cmd.exe` 中使用单引号包裹 JSON。
+- 不要对 npm/PowerShell 包装的 `zn-open-eco` 使用 `--%`；它可能使参数未被正确转交。
+- 完成账户解析与授权检查后，先用已发现的最简单只读接口做一次验证，再发起业务请求。
+- 若提示 `headers/query/body is invalid json`，先判定为本地 Shell 转义问题，不得将其归因于店铺授权或 SP-API；修正当前 Shell 的转义后仅重试一次。
+- 若上述验证已成功、而后续请求收到 schema/字段校验错误，应将其与本地 JSON 转义错误分开报告，并保留请求字段来自 operation 文档的证据。
+
 ## 调用前账户解析闸门
 
 任何 SP-API 能力发现或代理请求之前，必须按以下顺序完成；不得因为用户已经给出店铺名称或 ID 而跳过。

@@ -7,6 +7,22 @@ description: Use the zn-open-eco CLI to query and operate Temu stores through of
 
 使用 `zn-open-eco` 发现 `temu-api` 的可用接口并通过代理调用。不要驱动浏览器，不要猜测接口 `type`、请求参数、网关或店铺类型。
 
+## 跨平台 CLI JSON 参数（必读）
+
+执行 `zn-open-eco http` 前，先识别实际 Shell；不要把一种 Shell 的引号写法直接复制到另一种 Shell。`--headers`、`--query` 与 `--body` 都必须作为**一个完整 JSON 参数**传入。
+
+| 环境 | JSON 参数写法示例 |
+| --- | --- |
+| macOS/Linux bash/zsh | `--headers '{"X-Account-Id":"<browser_id>"}'` |
+| Windows PowerShell | `--headers '{\"X-Account-Id\":\"<browser_id>\"}'` |
+| Windows cmd.exe | `--headers "{\"X-Account-Id\":\"<browser_id>\"}"` |
+
+- `--query`、`--body`按同一规则转义；不要在 Windows `cmd.exe` 中使用单引号包裹 JSON。
+- 不要对 npm/PowerShell 包装的 `zn-open-eco` 使用 `--%`；它可能使参数未被正确转交。
+- 完成账户解析与授权检查后，先用已发现的最简单只读接口做一次验证，再发起业务请求。
+- 若提示 `headers/query/body is invalid json`，先判定为本地 Shell 转义问题，不得将其归因于店铺授权或 Temu API；修正当前 Shell 的转义后仅重试一次。
+- 若上述验证已成功、而后续请求收到 schema/字段校验错误，应将其与本地 JSON 转义错误分开报告，并保留请求字段来自 operation 文档的证据。
+
 ## 开始前
 
 1. 确认 `zn-open-eco` 可用；若命令不存在，说明依赖缺失并停止，不要改用直连请求。
