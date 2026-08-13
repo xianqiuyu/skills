@@ -1,6 +1,6 @@
 ---
 name: amazon-ads-skill
-description: Use when 用户通过 Amazon 官方 Ads API 查询或管理广告经营数据，包括 profiles、campaigns、ad groups、keywords、targeting、budgets、广告表现和报告，处理 Ads API 未授权、鉴权或 profile 错误，或请求同时涉及 SP-API 经营数据且需要联合分析，并且不需要驱动浏览器。
+description: Use when 用户通过 Amazon 官方 Ads API 查询或管理广告经营数据，包括 profiles、campaigns、ad groups、keywords、targeting、budgets、广告表现和报告，以及处理 Ads API 未授权、鉴权或 profile 错误，且不需要驱动浏览器。
 ---
 
 # Amazon Ads API 平台数据（zn-open-eco）
@@ -14,29 +14,6 @@ zn-open-eco agent guide
 ```
 
 Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-open-eco 指南里寻找。
-
-## 跨 Skill 协作与防循环
-
-用户显式指定某个 Skill，只表示该 Skill 必须参与，不表示只能使用该 Skill。开始任务时在内部维护 `primary_skill`、当前 `role` 和集合 `loaded_skills`；确定主协调者后立即初始化 `loaded_skills = {primary_skill}`。这些状态不得向用户展示。
-
-### 确定唯一主协调者
-
-- 用户显式指定 `amazon-ads-skill`：Ads 固定为 `primary_skill`，`role=primary`。
-- 用户显式指定 `amazon-sp-skill`：SP 固定为 `primary_skill`，Ads 若被加载只能是 `role=supplement`。显式指定的 Skill 固定为主协调者。
-- 用户未指定 Skill：主要交付物是广告活动、广告花费、ACOS、关键词或投放建议时由 Ads 协调；主要交付物是订单、总销售额、商品、Listing、库存、FBA、Feeds 或 Finances 时由 SP 协调；两类同等重要或仍无法区分时固定由 Ads 协调。
-
-### 加载补充 Skill
-
-- 只有 `role=primary` 可以执行跨 Skill 路由。需要订单、总销售额、商品、Listing、库存、FBA、Feeds 或 Finances 时，使用 `amazon-sp-skill`；需要广告活动、广告组、关键词、预算、广告花费、ACOS、投放表现或 Ads 报告时，使用 `amazon-ads-skill`。
-- 加载前检查 `loaded_skills`。先把目标 Skill 加入集合，再以 `role=supplement` 加载；每个 Amazon Skill 在一次任务中最多加载一次。
-- 补充 Skill 禁止再次执行本节路由，禁止反向加载主 Skill，也禁止改变 `primary_skill`。补充 Skill 将结果交回主协调者，不直接产生另一份最终答复。
-- 另一个 Skill 未安装或不可读取时，主协调者说明缺少的能力，继续完成当前 Skill 能处理的部分，不得改用错误平台的接口凑数。
-
-### 共享上下文与合并结果
-
-- 同一任务内复用已经完成的 `auth status`，并复用已选店铺的完整对象、内部 `browser_id`、站点和时间范围；不得让用户重复选店，也不得暴露内部字段。
-- 必须分别检查 `amazon-ads-api` 和 `amazon-sp-api` 的平台授权；一个平台的授权结果不得代替另一个平台。补充 Skill 仍须执行自己平台的授权检查。
-- 某个平台失败或未授权时，只停止失败或未授权的平台分支，继续处理可用分支。主协调者汇总各分支的业务数据、口径差异、缺失项和未授权提示，只输出一次合并后的最终结果。
 
 ## 跨平台 CLI JSON 参数（必读）
 
@@ -58,10 +35,10 @@ Amazon path、大区和未授权附图以本 Skill 为准，不要到 zn-open-ec
 
 任何 Ads 能力发现、profile 查询或代理请求之前，必须按以下顺序完成；不得因为用户已经给出店铺名称或 ID 而跳过。
 
-1. 若协作上下文没有有效的认证检查结果，首条 CLI 命令运行 `zn-open-eco auth status`；若主协调者已成功检查，则复用已经完成的 `auth status`，不要重复运行。
+1. 首条 CLI 命令运行 `zn-open-eco auth status`。
    - 未配置或无效：立即停止，只提醒用户先配置 auth；此时不要询问或展示店铺。
    - 已配置：继续店铺解析。
-2. 若主协调者已完成店铺选择，则复用已选店铺的完整对象并跳到本平台授权检查；否则解析店铺并私下保留选中店铺的完整对象：
+2. 解析店铺并私下保留选中店铺的完整对象：
    - 用户给出店铺名称或关键词：运行 `zn-open-eco account stores --store-name "<名称或关键词>"`。先用返回对象中的店铺名称与用户输入做精确匹配：恰有一个精确同名时，即使同时返回其他模糊候选也直接选中；没有精确同名且仅有一个可用候选时直接选中；只有没有精确同名且存在多个可用候选时，才按下方规则让用户选择。
    - 用户给出店铺 ID：运行 `zn-open-eco account stores`，在完整结果中私下按 `browser_id` 精确匹配。不要把 ID 回显给用户。
    - 用户未给店铺：运行 `zn-open-eco account stores`，缓存本次完整结果并进入选择流程。
