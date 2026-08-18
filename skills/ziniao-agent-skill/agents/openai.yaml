@@ -1,0 +1,4 @@
+interface:
+  display_name: "紫鸟 Agent 与浏览器自动化"
+  short_description: "通过 zn-open-eco 发现业务能力并编排 Delegated 页面自动化"
+  default_prompt: "使用 $ziniao-agent-skill 查找用户任务所需的 Product Skill 与知识库；仅在目标明确需要页面操作时，连接已确认的本地店铺浏览器并执行安全的 Delegated 工具循环。"
