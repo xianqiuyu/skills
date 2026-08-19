@@ -158,6 +158,8 @@ zn-open-eco auth status
 
 浏览器自动化任务必须先有且仅有一个已确认店铺。如果当前任务已按“店铺上下文解析”确认唯一店铺，复用该店铺；否则先执行 `account stores` 完成店铺上下文解析，只向用户展示店铺名称并提示其选择或补充，随后等待。确认唯一店铺前不得执行 `browser health`、`browser connection-status`、`browser open`、`browser list-online`、`agent manifest`、`agent tool` 或 `agent interaction`。当前流程有已选 Product Skill 时，还必须先通过该 Skill 与店铺的 `platform`/`site` 兼容性校验。`requires_browser_operation=1` 只表示所选 Product Skill 需要店铺上下文，本身不授权或触发浏览器命令；是否进入浏览器生命周期仍由“任务路由”决定。
 
+目标店铺已唯一确认、任务 URL 已确定且操作内容清晰时，店铺未连接只是一种生命周期状态，不是新的用户确认点：不得询问用户是否打开店铺浏览器，也不得把是否打开交给用户选择；按下一节完成健康检查和连接状态检查，确认未连接后直接执行一次 `browser open` 并继续。店铺尚未唯一确认、任务 URL 不完整或操作内容不清晰时，先澄清并等待，不得执行 `browser open`。
+
 ### 2. 准备连接
 
 确认唯一店铺后，严格按响应逐步执行：
@@ -171,7 +173,7 @@ zn-open-eco browser open --store-id "<private store_id>"
 1. `browser health` 失败：立即停止，不得继续执行 `connection-status`、`open` 或任何页面动作；提示用户在同一台本地电脑打开紫鸟 App 后重试。
 2. `browser health` 成功后才执行 `connection-status`。
 3. 已连接：生命周期准备完成，不重复执行 `browser open`。
-4. 未连接：执行一次 `browser open`；仅成功返回后才说明生命周期准备完成。
+4. 未连接：满足“目标店铺唯一、任务 URL 已确定、操作内容清晰”三个条件时，直接执行一次 `browser open`，不向用户追加打开确认；仅成功返回后才说明生命周期准备完成。任一条件不满足时先澄清，不执行 `browser open`。
 
 `zn-open-eco browser capabilities` 可用于确认本地桥接能力，不是常规前置步骤。`zn-open-eco browser list-online` 不能替代 `account stores` 解析目标店铺，也不是 `browser health`、`connection-status`、`open` 的连接准备前置；但准备连接完成后、执行任何 Delegated `agent manifest` 或工具命令前，必须按下一节执行一次以确认唯一在线匹配。
 
@@ -426,6 +428,7 @@ zn-open-eco agent knowledge get --kb-id "<selected kb_id>"
 | 浏览器任务缺少店铺，或店铺无法唯一确认 | 用 `account stores` 缓存结果，只展示名称并提示用户选择或补充，随后等待；确认前不执行任何 `browser`、`agent manifest`、`agent tool` 或 `agent interaction` 命令 |
 | 店铺匹配不唯一 | 精确同名优先；否则只展示名称并等待，不猜 |
 | `browser health` 失败 | 立即停止，提示在同一台本地电脑打开紫鸟 App |
+| 店铺唯一、任务 URL 与操作内容清晰，但 `connection-status` 显示未连接 | 不询问用户是否打开店铺浏览器；直接执行一次 `browser open`，成功后继续 `list-online` 和 Delegated 流程 |
 | 店铺已经连接 | 不重复执行 `browser open` |
 | `list-online` 对已选店铺的 `store_id` 恰好匹配一个项目 | 使用已确认店铺的真实 `store_id` 原值作为 Delegated 命令的 `browser_id`；不要求响应另有 `browser_id` 字段 |
 | `list-online` 对已选店铺的 `store_id` 精确匹配为零个或多个 | 停止并如实说明未在线或无法唯一映射；不猜、不展示 `store_id`/`browser_id`，也不把在线列表当作店铺选择来源 |
