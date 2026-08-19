@@ -11,6 +11,7 @@ REMOVED_CAPABILITY_REFERENCES = {
     "skills-market-analysis.md",
     "skills-media.md",
     "skills-selection.md",
+    "skills-tools.md",
 }
 
 

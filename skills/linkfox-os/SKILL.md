@@ -64,11 +64,10 @@ Read only the reference file needed to locate a suitable atomic query skill:
 | Amazon public or seller data | `references/skills-amazon.md` |
 | 1688, TikTok Shop, Shopee, Walmart, eBay, or Ozon data | `references/skills-third-platforms.md` |
 | Trademark, patent, copyright, or IP-risk lookup | `references/skills-ip-compliance.md` |
-| Google Trends, webpage extraction, product-center lookup, or another generic query | `references/skills-tools.md` |
 
 Every child reference is intentionally classified:
 
-- Allowed query catalogs: `references/skills-amazon.md`, `references/skills-third-platforms.md`, `references/skills-ip-compliance.md`, and `references/skills-tools.md`.
+- Allowed query catalogs: `references/skills-amazon.md`, `references/skills-third-platforms.md`, and `references/skills-ip-compliance.md`.
 - Non-routing documentation: `references/capabilities.md` describes broader agents and workflows that this skill forbids; `references/api.md` documents legacy transport APIs rather than atomic-skill selection. Do not use either file to select a query skill.
 
 When a reference file is added, it must be classified in exactly one of these groups before the skill is released.
@@ -79,7 +78,7 @@ Selection rules:
 2. Prefer a detail or lookup skill when the user supplies an exact identifier such as ASIN, product ID, keyword, shop ID, or task ID.
 3. Do not select a skill with names or descriptions indicating `report`, `analysis`, `generator`, `creation`, `optimization`, `recommendation`, `selection`, or `workflow`.
 4. Do not use a general-purpose agent to decide what the user meant after dispatch. Resolve the atomic skill and its parameters before dispatch.
-5. Before concluding that a platform or data source is unsupported, search only the four allowed query catalogs for its platform name and common aliases, then read only the matching catalog. Do not load every reference file by default.
+5. Before concluding that a platform or data source is unsupported, search only the three allowed query catalogs for its platform name and common aliases, then read only the matching catalog. Do not load every reference file by default.
 6. If no suitable read-only atomic skill exists after that lookup, say so briefly and stop.
 
 ## 3. Authentication
