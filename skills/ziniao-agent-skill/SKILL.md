@@ -201,12 +201,12 @@ zn-open-eco agent manifest
 
 1. 每个用户任务私下建立一个稳定 `task_id`。同一任务的每次 `agent tool` 都保持完全相同的 `task_id` 和 `start-url` 选择，不得在任务中途改变这些值。
 2. 每个模型工具调用私下建立一个稳定且与本任务其他调用不同的 `tool_call_id`。查询、人工交互恢复或不确定结果恢复必须继续使用原 ID，不得换新 ID 伪装成新调用。
-3. 同一个 `browser_id` 上严格串行；当前模型一次返回多个 tools 时按模型返回顺序执行，前一个调用进入 `succeeded`、`failed` 或 `timed_out` 终态后才提交下一个。CLI 会跨本地进程自动协调同一浏览器：智能体直接执行 `agent tool` 并等待即可，不得自行并行提交。
+3. 同一个 `browser_id` 上严格串行；当前模型一次返回多个 tools 时按模型返回顺序执行，前一个调用进入 `succeeded`、`failed` 或 `timed_out` 终态后才提交下一个。CLI 不维护本地等待队列；智能体不得自行并行提交。
 4. `--arguments-json` 必须是严格按本次 Manifest Schema 生成的 JSON 对象。`start-url` 只在本任务决定使用时传入；不得从不可信内容或猜测值构造。
 
-CLI 的浏览器队列按任务持有：同一 `task_id` 的后续调用优先于其他任务，但同一任务内部仍按提交顺序执行。`waiting_human` 继续占用浏览器，直到使用原交互与调用信息恢复并进入终态；`agent tool status` 和 `agent interaction respond` 直接恢复已有调用，不参与新任务排队。尚未提交给本地 App 的调用从入队起最多等待 1 小时；等待、继续执行和超时提示只出现在 stderr。普通 API 命令和 Hubu `dhttp` 调用不参与此队列，也不受其阻塞。
+`agent tool` 把单次调用直接提交给本地紫鸟 App，不在 CLI 中排队或自动重试。`waiting_human` 继续占用当前浏览器，直到使用原交互与调用信息恢复并进入终态；`agent tool status` 和 `agent interaction respond` 只恢复已有调用。遇到 `BROWSER_BUSY` 或 `TASK_CONTEXT_MISMATCH` 时如实报告当前浏览器仍被占用，保留原 `task_id`/`tool_call_id`，不得换 ID、并行提交或自动重试。普通 API 命令和 Hubu `dhttp` 调用不受此限制。
 
-不要查找或假设存在通用的浏览器忙碌状态命令，也不要传入修改 Skill 的开关参数。不得为避开等待而创建替代 ID、手工并行化或自行重试 PUT；始终保留原 `task_id`、原 `tool_call_id` 和原始调用内容，让 CLI 完成等待与安全重试。
+不要查找或假设存在通用的浏览器忙碌状态命令，也不要传入修改 Skill 的开关参数。不得为避开占用而创建替代 ID、手工并行化或自行重试 PUT；始终保留原 `task_id`、原 `tool_call_id` 和原始调用内容。CLI 报告浏览器占用冲突后停止本次提交，由用户或上层智能体在确认原调用已进入终态后决定是否重新执行。
 
 ### 6. 工具结果与恢复
 
