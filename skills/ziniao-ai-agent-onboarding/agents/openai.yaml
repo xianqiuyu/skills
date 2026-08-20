@@ -1,0 +1,4 @@
+interface:
+  display_name: "紫鸟AI Agent 新手引导"
+  short_description: "安装完成后选择首个跨境运营体验任务"
+  default_prompt: "使用 $ziniao-ai-agent-onboarding 带我开始使用紫鸟 ECO。"
